@@ -12,6 +12,8 @@ export default function AddProductPage() {
     name: '',
     description: '',
     price: '',
+    category: '',
+    stock: '',
     images: ['']
   });
 
@@ -104,7 +106,7 @@ export default function AddProductPage() {
       // Filter out null/empty images
       const validImages = formData.images.filter(img => img && img.trim() !== '');
       
-      if (!formData.name || !formData.description || !formData.price) {
+      if (!formData.name || !formData.description || !formData.price || !formData.category || !formData.stock) {
         toast.error('Please fill all required fields.');
         setLoading(false);
         return;
@@ -126,7 +128,8 @@ export default function AddProductPage() {
         body: JSON.stringify({
           ...formData,
           images: validImages,
-          price: parseFloat(formData.price)
+          price: parseFloat(formData.price),
+          stock: parseInt(formData.stock)
         })
       });
 
@@ -136,7 +139,16 @@ export default function AddProductPage() {
         router.push('/seller/products');
       } else {
         const error = await response.json();
-        toast.error(`Error: ${error.message}`);
+        console.error('Backend error:', error);
+        
+        // Show specific validation errors if available
+        if (error.errorMessage) {
+          toast.error(`Validation Error: ${error.errorMessage}`);
+        } else if (error.message) {
+          toast.error(`Error: ${error.message}`);
+        } else {
+          toast.error('Error adding product. Please check all fields.');
+        }
       }
     } catch (error) {
       console.error('Error adding product:', error);
@@ -209,6 +221,41 @@ export default function AddProductPage() {
                 placeholder="0.00"
               />
             </div>
+          </div>
+
+          {/* Category */}
+          <div>
+            <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-2">
+              Category *
+            </label>
+            <input
+              type="text"
+              id="category"
+              name="category"
+              value={formData.category}
+              onChange={handleChange}
+              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              placeholder="e.g., Electronics, Clothing, Books"
+            />
+          </div>
+
+          {/* Stock */}
+          <div>
+            <label htmlFor="stock" className="block text-sm font-medium text-gray-700 mb-2">
+              Stock Quantity *
+            </label>
+            <input
+              type="number"
+              id="stock"
+              name="stock"
+              value={formData.stock}
+              onChange={handleChange}
+              required
+              min="0"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              placeholder="Enter stock quantity"
+            />
           </div>
 
                      {/* Product Images */}

@@ -28,17 +28,31 @@ export default function SellerDashboard() {
       });
       
       if (response.ok) {
-        const data = await response.json();
-        setProducts(data);
+        const result = await response.json();
+        // Extract products from the response structure
+        const productsData = result.data || result || [];
+        
+        // Ensure productsData is an array
+        if (!Array.isArray(productsData)) {
+          console.error('Products data is not an array:', productsData);
+          setProducts([]);
+          return;
+        }
+        
+        setProducts(productsData);
         setStats({
-          totalProducts: data.length,
-          totalSales: data.reduce((sum, product) => sum + (product.price || 0), 0),
+          totalProducts: productsData.length,
+          totalSales: productsData.reduce((sum, product) => sum + (product.price || 0), 0),
           totalOrders: Math.floor(Math.random() * 100) + 50, // Mock data for now
           averageRating: 4.8 // Mock data for now
         });
+      } else {
+        console.error('Failed to fetch products:', response.status);
+        setProducts([]);
       }
     } catch (error) {
       console.error('Error fetching products:', error);
+      setProducts([]);
     } finally {
       setLoading(false);
     }
@@ -210,7 +224,7 @@ export default function SellerDashboard() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        {products.slice(0, 3).map((product) => (
+            {Array.isArray(products) && products.slice(0, 3).map((product) => (
               <div key={product._id} className="border border-gray-200 rounded-lg p-4">
                 <div className="aspect-w-16 aspect-h-9 mb-3">
                   {product.images && product.images.length > 0 ? (

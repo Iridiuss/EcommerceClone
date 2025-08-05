@@ -17,18 +17,48 @@ export default function ProductsPage() {
   const fetchProducts = async () => {
     try {
       const token = localStorage.getItem('token');
+      console.log('Fetching products with token:', token ? 'Token exists' : 'No token');
+      
       const response = await fetch('http://localhost:5000/api/products/seller', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
       
+      console.log('Products API response status:', response.status);
+      
       if (response.ok) {
-        const data = await response.json();
-        setProducts(data);
+        const result = await response.json();
+        console.log('Products API response:', result);
+        
+        // Extract products from the response structure
+        const productsData = result.data || result || [];
+        
+        // Ensure productsData is an array
+        if (!Array.isArray(productsData)) {
+          console.error('Products data is not an array:', productsData);
+          setProducts([]);
+          return;
+        }
+        
+        console.log('Setting products:', productsData.length, 'products found');
+        setProducts(productsData);
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Failed to fetch products:', response.status, errorData);
+        
+        if (response.status === 429) {
+          toast.error('Rate limit exceeded. Please wait a moment and try again.');
+        } else {
+          toast.error(`Failed to load products: ${errorData.message || 'Unknown error'}`);
+        }
+        
+        setProducts([]);
       }
     } catch (error) {
       console.error('Error fetching products:', error);
+      toast.error('Network error while loading products');
+      setProducts([]);
     } finally {
       setLoading(false);
     }
@@ -150,7 +180,7 @@ export default function ProductsPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {products.map((product) => (
+          {Array.isArray(products) && products.map((product) => (
             <div key={product._id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
               {/* Product Images */}
               <div className="aspect-w-16 aspect-h-9">
@@ -228,13 +258,13 @@ export default function ProductsPage() {
             </div>
             <div className="text-center">
               <p className="text-2xl font-bold text-green-600">
-                ${products.reduce((sum, p) => sum + p.price, 0).toFixed(2)}
+                ${Array.isArray(products) ? products.reduce((sum, p) => sum + (p.price || 0), 0).toFixed(2) : '0.00'}
               </p>
               <p className="text-sm text-gray-600">Total Value</p>
             </div>
             <div className="text-center">
               <p className="text-2xl font-bold text-purple-600">
-                ${(products.reduce((sum, p) => sum + p.price, 0) / products.length).toFixed(2)}
+                ${Array.isArray(products) && products.length > 0 ? (products.reduce((sum, p) => sum + (p.price || 0), 0) / products.length).toFixed(2) : '0.00'}
               </p>
               <p className="text-sm text-gray-600">Average Price</p>
             </div>

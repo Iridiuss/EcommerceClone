@@ -66,6 +66,12 @@ export const AuthProvider = ({ children }) => {
               const data = await response.json();
 
               if (!response.ok) {
+                // Handle rate limiting specifically
+                if (response.status === 429) {
+                  const retryAfter = data.retryAfter || 900; // 15 minutes default
+                  throw new Error(`Too many attempts. Please try again in ${Math.ceil(retryAfter / 60)} minutes.`);
+                }
+                
                 throw new Error(data.message || 'Login failed');
               }
 
@@ -83,8 +89,9 @@ export const AuthProvider = ({ children }) => {
               
               return data;
             } catch (error) {
+              console.error('Login error:', error);
               toast.error(error.message || 'Login failed');
-              throw new Error(error.message || 'Login failed');
+              throw error;
             }
           };
 
@@ -101,6 +108,12 @@ export const AuthProvider = ({ children }) => {
               const data = await response.json();
 
               if (!response.ok) {
+                // Handle rate limiting specifically
+                if (response.status === 429) {
+                  const retryAfter = data.retryAfter || 900; // 15 minutes default
+                  throw new Error(`Too many attempts. Please try again in ${Math.ceil(retryAfter / 60)} minutes.`);
+                }
+                
                 throw new Error(data.message || 'Registration failed');
               }
 
@@ -118,8 +131,9 @@ export const AuthProvider = ({ children }) => {
               
               return data;
             } catch (error) {
+              console.error('Registration error:', error);
               toast.error(error.message || 'Registration failed');
-              throw new Error(error.message || 'Registration failed');
+              throw error;
             }
           };
 

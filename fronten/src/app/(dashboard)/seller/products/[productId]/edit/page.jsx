@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import toast from 'react-hot-toast';
+import Link from 'next/link';
 
 export default function EditProductPage() {
   const { productId } = useParams();
@@ -33,16 +34,27 @@ export default function EditProductPage() {
       });
       
       if (response.ok) {
-        const data = await response.json();
-        setProduct(data);
+        const result = await response.json();
+        // Extract product from the response structure
+        const productData = result.data || result;
+        
+        if (!productData) {
+          setError('Product not found');
+          return;
+        }
+        
+        setProduct(productData);
         setFormData({
-          name: data.name,
-          description: data.description,
-          price: data.price.toString(),
-          images: data.images || []
+          name: productData.name || '',
+          description: productData.description || '',
+          price: productData.price ? productData.price.toString() : '',
+          category: productData.category || '',
+          stock: productData.stock ? productData.stock.toString() : '',
+          images: productData.images || []
         });
       } else {
-        setError('Product not found');
+        const errorData = await response.json();
+        setError(errorData.message || 'Product not found');
       }
     } catch (error) {
       console.error('Error fetching product:', error);
@@ -205,13 +217,29 @@ export default function EditProductPage() {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
         </svg>
         <h3 className="text-lg font-medium text-gray-900 mb-2">Product Not Found</h3>
-        <p className="text-gray-500 mb-6">{error || 'The product you are looking for does not exist.'}</p>
-        <button
-          onClick={() => router.push('/seller/products')}
-          className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors"
-        >
-          Back to Products
-        </button>
+        <p className="text-gray-500 mb-4">{error || 'The product you are looking for does not exist.'}</p>
+        
+        {/* Debug information */}
+        <div className="bg-gray-50 p-4 rounded-lg mb-6 max-w-md mx-auto">
+          <p className="text-sm text-gray-600 mb-2">Debug Info:</p>
+          <p className="text-xs text-gray-500">Product ID: {productId}</p>
+          <p className="text-xs text-gray-500">URL: {window.location.href}</p>
+        </div>
+        
+        <div className="flex justify-center space-x-4">
+          <Link
+            href="/seller/products"
+            className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors"
+          >
+            Back to Products
+          </Link>
+          <button
+            onClick={() => window.location.reload()}
+            className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Try Again
+          </button>
+        </div>
       </div>
     );
   }

@@ -26,10 +26,19 @@ export default function ProductDetailPage() {
       });
       
       if (response.ok) {
-        const data = await response.json();
-        setProduct(data);
+        const result = await response.json();
+        // Extract product from the response structure
+        const productData = result.data || result;
+        
+        if (!productData) {
+          setError('Product not found');
+          return;
+        }
+        
+        setProduct(productData);
       } else {
-        setError('Product not found');
+        const errorData = await response.json();
+        setError(errorData.message || 'Product not found');
       }
     } catch (error) {
       console.error('Error fetching product:', error);
