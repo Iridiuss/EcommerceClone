@@ -1,8 +1,9 @@
 'use client';
-import { useState } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '../../../../context/AuthContext';
+import { useAuth } from '@/context/AuthContext';
 import toast from 'react-hot-toast';
+import { FormSkeleton } from '@/components/LoadingSkeleton';
 
 export default function AddProductPage() {
   const { user } = useAuth();
@@ -17,15 +18,30 @@ export default function AddProductPage() {
     images: ['']
   });
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
+  // Memoized form validation
+  const formErrors = useMemo(() => {
+    const errors = {};
+    
+    if (!formData.name.trim()) errors.name = 'Product name is required';
+    if (!formData.description.trim()) errors.description = 'Description is required';
+    if (formData.description.trim().length < 10) errors.description = 'Description must be at least 10 characters';
+    if (!formData.price || parseFloat(formData.price) <= 0) errors.price = 'Valid price is required';
+    if (!formData.category.trim()) errors.category = 'Category is required';
+    if (!formData.stock || parseInt(formData.stock) < 0) errors.stock = 'Valid stock quantity is required';
+    
+    const validImages = formData.images.filter(img => img && img.trim() !== '');
+    if (validImages.length === 0) errors.images = 'At least one image is required';
+    
+    return errors;
+  }, [formData]);
 
-  const compressImage = (file) => {
+  // Memoized form validity
+  const isFormValid = useMemo(() => {
+    return Object.keys(formErrors).length === 0;
+  }, [formErrors]);
+
+  // Memoized image compression function
+  const compressImage = useCallback((file) => {
     return new Promise((resolve) => {
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
@@ -59,9 +75,19 @@ export default function AddProductPage() {
       
       img.src = URL.createObjectURL(file);
     });
-  };
+  }, []);
 
-  const handleFileChange = async (index, file) => {
+  // Memoized form change handler
+  const handleChange = useCallback((e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  }, []);
+
+  // Memoized file change handler
+  const handleFileChange = useCallback(async (index, file) => {
     if (file) {
       try {
         const compressedImage = await compressImage(file);
@@ -82,42 +108,39 @@ export default function AddProductPage() {
         reader.readAsDataURL(file);
       }
     }
-  };
+  }, [compressImage]);
 
-  const addImageField = () => {
+  // Memoized add image field handler
+  const addImageField = useCallback(() => {
     setFormData(prev => ({
       ...prev,
       images: [...prev.images, null]
     }));
-  };
+  }, []);
 
-  const removeImageField = (index) => {
+  // Memoized remove image field handler
+  const removeImageField = useCallback((index) => {
     setFormData(prev => ({
       ...prev,
       images: prev.images.filter((_, i) => i !== index)
     }));
-  };
+  }, []);
 
-  const handleSubmit = async (e) => {
+  // Memoized submit handler
+  const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
+    
+    if (!isFormValid) {
+      toast.error('Please fix the form errors before submitting.');
+      return;
+    }
+
     setLoading(true);
 
     try {
       // Filter out null/empty images
       const validImages = formData.images.filter(img => img && img.trim() !== '');
       
-      if (!formData.name || !formData.description || !formData.price || !formData.category || !formData.stock) {
-        toast.error('Please fill all required fields.');
-        setLoading(false);
-        return;
-      }
-
-      if (validImages.length === 0) {
-        toast.error('Please upload at least one image');
-        setLoading(false);
-        return;
-      }
-
       const token = localStorage.getItem('token');
       const response = await fetch('http://localhost:5000/api/products', {
         method: 'POST',
@@ -156,7 +179,11 @@ export default function AddProductPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [formData, isFormValid, router]);
+
+  if (loading) {
+    return <FormSkeleton />;
+  }
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -178,10 +205,14 @@ export default function AddProductPage() {
               name="name"
               value={formData.name}
               onChange={handleChange}
-              required
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent ${
+                formErrors.name ? 'border-red-500' : 'border-gray-300'
+              }`}
               placeholder="Enter product name"
             />
+            {formErrors.name && (
+              <p className="mt-1 text-sm text-red-600">{formErrors.name}</p>
+            )}
           </div>
 
           {/* Description */}
@@ -194,11 +225,15 @@ export default function AddProductPage() {
               name="description"
               value={formData.description}
               onChange={handleChange}
-              required
               rows={4}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent ${
+                formErrors.description ? 'border-red-500' : 'border-gray-300'
+              }`}
               placeholder="Describe your product..."
             />
+            {formErrors.description && (
+              <p className="mt-1 text-sm text-red-600">{formErrors.description}</p>
+            )}
           </div>
 
           {/* Price */}
@@ -214,13 +249,17 @@ export default function AddProductPage() {
                 name="price"
                 value={formData.price}
                 onChange={handleChange}
-                required
                 min="0"
                 step="0.01"
-                className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                className={`w-full pl-8 pr-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent ${
+                  formErrors.price ? 'border-red-500' : 'border-gray-300'
+                }`}
                 placeholder="0.00"
               />
             </div>
+            {formErrors.price && (
+              <p className="mt-1 text-sm text-red-600">{formErrors.price}</p>
+            )}
           </div>
 
           {/* Category */}
@@ -234,10 +273,14 @@ export default function AddProductPage() {
               name="category"
               value={formData.category}
               onChange={handleChange}
-              required
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent ${
+                formErrors.category ? 'border-red-500' : 'border-gray-300'
+              }`}
               placeholder="e.g., Electronics, Clothing, Books"
             />
+            {formErrors.category && (
+              <p className="mt-1 text-sm text-red-600">{formErrors.category}</p>
+            )}
           </div>
 
           {/* Stock */}
@@ -251,97 +294,104 @@ export default function AddProductPage() {
               name="stock"
               value={formData.stock}
               onChange={handleChange}
-              required
               min="0"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent ${
+                formErrors.stock ? 'border-red-500' : 'border-gray-300'
+              }`}
               placeholder="Enter stock quantity"
             />
+            {formErrors.stock && (
+              <p className="mt-1 text-sm text-red-600">{formErrors.stock}</p>
+            )}
           </div>
 
-                     {/* Product Images */}
-           <div>
-             <div className="flex items-center justify-between mb-4">
-               <label className="block text-sm font-medium text-gray-700">
-                 Product Images *
-               </label>
-               <button
-                 type="button"
-                 onClick={addImageField}
-                 className="text-sm text-green-600 hover:text-green-700 font-medium"
-               >
-                 + Add Another Image
-               </button>
-             </div>
-             
-             {/* Image Upload Fields */}
-             {formData.images.map((image, index) => (
-               <div key={index} className="mb-4">
-                 <div className="flex items-center space-x-2">
-                   <input
-                     type="file"
-                     accept="image/*"
-                     onChange={(e) => handleFileChange(index, e.target.files[0])}
-                     required={index === 0}
-                     className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
-                   />
-                   {formData.images.length > 1 && (
-                     <button
-                       type="button"
-                       onClick={() => removeImageField(index)}
-                       className="px-3 py-2 text-red-600 hover:text-red-700 border border-red-300 rounded-lg hover:bg-red-50 transition-colors"
-                     >
-                       Remove
-                     </button>
-                   )}
-                 </div>
-                 {index === 0 && (
-                   <p className="text-xs text-gray-500 mt-1">
-                     Upload images from your device (JPG, PNG, GIF supported)
-                   </p>
-                 )}
-               </div>
-             ))}
+          {/* Product Images */}
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <label className="block text-sm font-medium text-gray-700">
+                Product Images *
+              </label>
+              <button
+                type="button"
+                onClick={addImageField}
+                className="text-sm text-green-600 hover:text-green-700 font-medium"
+              >
+                + Add Another Image
+              </button>
+            </div>
+            
+            {/* Image Upload Fields */}
+            {formData.images.map((image, index) => (
+              <div key={index} className="mb-4">
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleFileChange(index, e.target.files[0])}
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
+                  />
+                  {formData.images.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeImageField(index)}
+                      className="px-3 py-2 text-red-600 hover:text-red-700 border border-red-300 rounded-lg hover:bg-red-50 transition-colors"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+                {index === 0 && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Upload images from your device (JPG, PNG, GIF supported)
+                  </p>
+                )}
+              </div>
+            ))}
 
-             {/* Image Previews */}
-             {formData.images.some(img => img) && (
-               <div className="mt-6">
-                 <label className="block text-sm font-medium text-gray-700 mb-3">
-                   Image Previews
-                 </label>
-                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                   {formData.images.map((image, index) => (
-                     image && (
-                       <div key={index} className="relative border border-gray-300 rounded-lg p-2">
-                         <img
-                           src={image}
-                           alt={`Product image ${index + 1}`}
-                           className="w-full h-24 object-cover rounded-lg"
-                           onError={(e) => {
-                             e.target.src = 'https://via.placeholder.com/300x300?text=Image+Not+Found';
-                           }}
-                         />
-                         <button
-                           type="button"
-                           onClick={() => removeImageField(index)}
-                           className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600 transition-colors"
-                           title="Remove image"
-                         >
-                           ×
-                         </button>
-                         <p className="text-xs text-gray-500 mt-1 text-center">Image {index + 1}</p>
-                       </div>
-                     )
-                   ))}
-                 </div>
-               </div>
-             )}
-           </div>
+            {formErrors.images && (
+              <p className="mt-1 text-sm text-red-600">{formErrors.images}</p>
+            )}
+
+            {/* Image Previews */}
+            {formData.images.some(img => img) && (
+              <div className="mt-6">
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  Image Previews
+                </label>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {formData.images.map((image, index) => (
+                    image && (
+                      <div key={index} className="relative border border-gray-300 rounded-lg p-2">
+                        <img
+                          src={image}
+                          alt={`Product image ${index + 1}`}
+                          className="w-full h-24 object-cover rounded-lg"
+                          onError={(e) => {
+                            e.target.src = 'https://via.placeholder.com/300x300?text=Image+Not+Found';
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeImageField(index)}
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600 transition-colors"
+                          title="Remove image"
+                        >
+                          ×
+                        </button>
+                        <p className="text-xs text-gray-500 mt-1 text-center">Image {index + 1}</p>
+                      </div>
+                    )
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* Submit Button */}
           <div className="flex space-x-4">
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || !isFormValid}
               className="flex-1 bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
             >
               {loading ? (

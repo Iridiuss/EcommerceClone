@@ -11,7 +11,7 @@ export default function AuthForm({ type }) {
     name: '',
     email: '',
     password: '',
-    role: 'user'
+    role: 'customer'
   });
   const [loading, setLoading] = useState(false);
   const { login, register } = useAuth();
@@ -25,9 +25,9 @@ export default function AuthForm({ type }) {
       if (type === 'login') {
         await login(formData.email, formData.password);
       } else {
-        await register(formData);
+        const normalizedRole = formData.role === 'seller' ? 'seller' : 'customer';
+        await register(formData.name, formData.email, formData.password, normalizedRole);
       }
-      router.push('/');
     } catch (error) {
       toast.error(error.message || 'Something went wrong');
     } finally {
@@ -122,7 +122,7 @@ export default function AuthForm({ type }) {
                     checked={formData.role === 'seller'}
                     onChange={(e) => setFormData({
                       ...formData,
-                      role: e.target.checked ? 'seller' : 'user'
+                      role: e.target.checked ? 'seller' : 'customer'
                     })}
                   />
                   <span className="ml-3 text-sm text-gray-700">

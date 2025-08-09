@@ -12,6 +12,8 @@ export default function ProductDetailPage() {
   const [selectedImage, setSelectedImage] = useState(0);
   const [error, setError] = useState(null);
 
+  // No auto-rotation on detail page
+
   useEffect(() => {
     fetchProduct();
   }, [params.productId]);
@@ -101,7 +103,7 @@ export default function ProductDetailPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Image Gallery */}
         <div className="space-y-4">
-          {/* Main Image */}
+          {/* Main Image without auto-rotate */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
             {product.images && product.images.length > 0 ? (
               <div className="relative">
@@ -113,11 +115,6 @@ export default function ProductDetailPage() {
                     e.target.src = 'https://via.placeholder.com/600x400?text=Image+Not+Found';
                   }}
                 />
-                {product.images.length > 1 && (
-                  <div className="absolute top-4 right-4 bg-black bg-opacity-50 text-white text-sm px-2 py-1 rounded-full">
-                    {selectedImage + 1} of {product.images.length}
-                  </div>
-                )}
               </div>
             ) : (
               <div className="w-full h-96 bg-gray-200 flex items-center justify-center">
@@ -131,7 +128,7 @@ export default function ProductDetailPage() {
             )}
           </div>
 
-          {/* Thumbnail Gallery */}
+          {/* Thumbnail Gallery (show all images) */}
           {product.images && product.images.length > 1 && (
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
               <h3 className="text-sm font-medium text-gray-700 mb-3">All Images</h3>
@@ -189,14 +186,8 @@ export default function ProductDetailPage() {
                   <p className="text-sm text-gray-600 font-mono">{product._id}</p>
                 </div>
                 <div>
-                  <h3 className="text-sm font-medium text-gray-700 mb-1">Created</h3>
-                  <p className="text-sm text-gray-600">
-                    {new Date(product.createdAt).toLocaleDateString('en-US', {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric'
-                    })}
-                  </p>
+                  <h3 className="text-sm font-medium text-gray-700 mb-1">Quantity</h3>
+                  <p className="text-sm text-gray-700 font-semibold">{product.stock}</p>
                 </div>
               </div>
             </div>

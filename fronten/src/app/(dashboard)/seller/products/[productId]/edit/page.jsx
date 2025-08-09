@@ -160,7 +160,7 @@ export default function EditProductPage() {
       // Filter out null/empty images
       const validImages = formData.images.filter(img => img && img.trim() !== '');
       
-      if (!formData.name || !formData.description || !formData.price) {
+      if (!formData.name || !formData.description || !formData.price || !formData.category || !formData.stock) {
         toast.error('Please fill all required fields.');
         setSaving(false);
         return;
@@ -182,7 +182,8 @@ export default function EditProductPage() {
         body: JSON.stringify({
           ...formData,
           images: validImages,
-          price: parseFloat(formData.price)
+          price: parseFloat(formData.price),
+          stock: parseInt(formData.stock)
         })
       });
 
@@ -307,6 +308,52 @@ export default function EditProductPage() {
                 placeholder="0.00"
               />
             </div>
+          </div>
+
+          {/* Category */}
+          <div>
+            <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-2">
+              Category *
+            </label>
+            <select
+              id="category"
+              name="category"
+              value={formData.category}
+              onChange={handleChange}
+              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            >
+              <option value="">Select a category</option>
+              <option value="Electronics">Electronics</option>
+              <option value="Clothing">Clothing</option>
+              <option value="Books">Books</option>
+              <option value="Home & Garden">Home & Garden</option>
+              <option value="Sports & Outdoors">Sports & Outdoors</option>
+              <option value="Toys & Games">Toys & Games</option>
+              <option value="Health & Beauty">Health & Beauty</option>
+              <option value="Automotive">Automotive</option>
+              <option value="Tools & Hardware">Tools & Hardware</option>
+              <option value="Food & Beverages">Food & Beverages</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+
+          {/* Stock */}
+          <div>
+            <label htmlFor="stock" className="block text-sm font-medium text-gray-700 mb-2">
+              Stock Quantity *
+            </label>
+            <input
+              type="number"
+              id="stock"
+              name="stock"
+              value={formData.stock}
+              onChange={handleChange}
+              required
+              min="0"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              placeholder="Enter stock quantity"
+            />
           </div>
 
           {/* All Images Section */}
